@@ -71,6 +71,7 @@ export async function GET() {
       OTHER: 0        // อื่นๆ
     }
     
+    
     attendances.forEach(attendance => {
       // @ts-ignore - เรารู้ว่า attendance.type เป็นค่าที่มีอยู่ใน attendanceSummary
       attendanceSummary[attendance.type]++
