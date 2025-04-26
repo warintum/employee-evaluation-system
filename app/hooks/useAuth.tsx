@@ -155,8 +155,8 @@ const login = async (email: string, password: string, remember: boolean = false)
     // ทำ redirect หลังจากรอสักครู่เพื่อให้ state และ localStorage ถูกอัปเดตก่อน
     setTimeout(() => {
       if (data.user.role === 'ADMIN' || data.user.role === 'ADMIN_HR') {
-        console.log("Redirecting to /admin/dashboard")
-        window.location.href = '/admin/dashboard'
+        console.log("Redirecting to /dashboard")
+        window.location.href = '/dashboard'
       } else if (data.user.role === 'MANAGER') {
         console.log("Redirecting to /dashboard")
         window.location.href = '/dashboard'
