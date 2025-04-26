@@ -1,0 +1,53 @@
+{
+  "name": "employee-evaluation-system",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^5.0.1",
+    "@prisma/client": "^6.6.0",
+    "axios": "^1.9.0",
+    "bcryptjs": "^3.0.2",
+    "class-variance-authority": "^0.7.1",
+    "date-fns": "^4.1.0",
+    "framer-motion": "^12.9.1",
+    "jose": "^6.0.10",
+    "jsonwebtoken": "^9.0.2",
+    "jspdf": "^3.0.1",
+    "next": "15.3.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemailer": "^6.10.1",
+    "pg": "^8.15.5",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-hook-form": "^7.56.1",
+    "recharts": "^2.15.3",
+    "tailwind-merge": "^3.2.0",
+    "thai-date": "^1.2.0",
+    "xlsx": "^0.18.5",
+    "zod": "^3.24.3"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/bcrypt": "^5.0.2",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^20",
+    "@types/node-telegram-bot-api": "^0.64.8",
+    "@types/nodemailer": "^6.4.17",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.1",
+    "prisma": "^6.6.0",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "typescript": "^5"
+  }
+}

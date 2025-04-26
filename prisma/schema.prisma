@@ -1,0 +1,284 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+//generator client {
+//  provider = "prisma-client-js"
+//  output   = "../app/generated/prisma"
+//}
+
+//datasource db {
+//  provider = "postgresql"
+//  url      = env("DATABASE_URL")
+//}
+
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ข้อมูลผู้ใช้งาน
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String
+  firstName     String
+  lastName      String
+  employeeId    String         @unique
+  role          Role           @default(USER)
+  position      String
+  department    String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  isExempt      Boolean        @default(false) // ยกเว้นการประเมิน
+  isActive      Boolean        @default(true)
+  
+  // การประเมินที่ผู้ใช้ได้รับ (ในฐานะผู้ถูกประเมิน)
+  evaluationsAsEvaluee      Evaluation[] @relation("Evaluee")
+  
+  // การประเมินที่ผู้ใช้ทำ (ในฐานะผู้ประเมิน)
+  evaluationsAsEvaluator    Evaluation[] @relation("Evaluator")
+  
+  // การประเมินที่ผู้ใช้ตรวจสอบ (ในฐานะผู้ตรวจสอบ)
+  evaluationsAsReviewer     Evaluation[] @relation("Reviewer")
+  
+  // การประเมินที่ผู้ใช้อนุมัติ (ในฐานะผู้จัดการ)
+  evaluationsAsManager      Evaluation[] @relation("Manager")
+  
+  // ข้อมูลการขาด/ลา/มาสาย
+  attendances              Attendance[]
+  
+  // ลำดับผู้ประเมิน
+  evaluatorSetups          EvaluatorSetup[] @relation("EvaluatorUser")
+  reviewerSetups           EvaluatorSetup[] @relation("ReviewerUser")
+  managerSetups            EvaluatorSetup[] @relation("ManagerUser")
+  
+  // การประเมินตนเอง
+  selfEvaluations          SelfEvaluation[]
+}
+
+enum Role {
+  ADMIN           // ผู้ดูแลระบบ
+  ADMIN_HR        // HR ที่มีสิทธิ์เกือบเท่า Admin
+  USER            // ผู้ใช้งานทั่วไป (ผู้ถูกประเมิน)
+  EVALUATOR       // ผู้ประเมิน (ลำดับ 1)
+  REVIEWER        // ผู้ตรวจสอบ (ลำดับ 2)
+  MANAGER         // ผู้จัดการ/ผู้อำนวยการ (ลำดับ 3)
+}
+
+// หมวดหมู่คำถาม
+model Category {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?
+  position      String         // ตำแหน่งที่เกี่ยวข้อง
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  questions     Question[]
+}
+
+// คำถามในแบบประเมิน
+model Question {
+  id            String         @id @default(uuid())
+  text          String
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // คำตอบจากการประเมิน
+  answers       Answer[]
+  selfAnswers   SelfAnswer[]
+}
+
+// ตั้งค่าลำดับผู้ประเมิน
+model EvaluatorSetup {
+  id            String         @id @default(uuid())
+  departmentId  String         // แผนกที่เกี่ยวข้อง
+  
+  // ผู้ประเมิน (ลำดับ 1)
+  evaluatorId   String
+  evaluator     User           @relation("EvaluatorUser", fields: [evaluatorId], references: [id])
+  
+  // ผู้ตรวจสอบ (ลำดับ 2)
+  reviewerId    String
+  reviewer      User           @relation("ReviewerUser", fields: [reviewerId], references: [id])
+  
+  // ผู้จัดการ (ลำดับ 3)
+  managerId     String
+  manager       User           @relation("ManagerUser", fields: [managerId], references: [id])
+  
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// ข้อมูลการขาด/ลา/มาสาย
+model Attendance {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  date          DateTime
+  type          AttendanceType
+  reason        String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+enum AttendanceType {
+  LATE          // มาสาย
+  ABSENT        // ขาดงาน
+  SICK_LEAVE    // ลาป่วย
+  PERSONAL_LEAVE // ลากิจ
+  VACATION      // พักร้อน
+  OTHER         // อื่นๆ
+}
+
+// ตั้งค่าการหักคะแนน
+model DeductionRule {
+  id            String         @id @default(uuid())
+  type          AttendanceType
+  points        Float          // คะแนนที่หัก
+  maxCount      Int?           // จำนวนครั้งสูงสุด (ถ้ามี)
+  forceGrade    String?        // บังคับเกรด (ถ้ามี)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// ตั้งค่าเกรด
+model GradeRule {
+  id            String         @id @default(uuid())
+  grade         String         // เกรด (A, B, C, D, F)
+  minScore      Float          // คะแนนขั้นต่ำ
+  maxScore      Float          // คะแนนสูงสุด
+  description   String?        // คำอธิบายเกรด
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// การประเมิน
+model Evaluation {
+  id            String         @id @default(uuid())
+  year          Int
+  period        String         // รอบการประเมิน (เช่น Q1, Q2, ประจำปี)
+  
+  // ผู้ถูกประเมิน
+  evalueeId     String
+  evaluee       User           @relation("Evaluee", fields: [evalueeId], references: [id])
+  
+  // ผู้ประเมิน (ลำดับ 1)
+  evaluatorId   String
+  evaluator     User           @relation("Evaluator", fields: [evaluatorId], references: [id])
+  
+  // ผู้ตรวจสอบ (ลำดับ 2)
+  reviewerId    String
+  reviewer      User           @relation("Reviewer", fields: [reviewerId], references: [id])
+  
+  // ผู้จัดการ (ลำดับ 3)
+  managerId     String
+  manager       User           @relation("Manager", fields: [managerId], references: [id])
+  
+  // สถานะการประเมิน
+  status                EvaluationStatus @default(PENDING)
+  allowSelfEvaluation   Boolean         @default(false)
+  
+  // ผลการประเมินจากผู้ประเมิน
+  evaluatorComment      String?
+  evaluatorApproved     Boolean         @default(false)
+  evaluatorRejectedReason String?
+  
+  // ผลการตรวจสอบจากผู้ตรวจสอบ
+  reviewerComment       String?
+  reviewerApproved      Boolean         @default(false)
+  reviewerRejectedReason String?
+  
+  // ผลการอนุมัติจากผู้จัดการ
+  managerComment        String?
+  managerApproved       Boolean         @default(false)
+  managerRejectedReason String?
+  
+  // ผลการประเมินสุดท้าย
+  finalScore            Float?
+  finalGrade            String?
+  
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  
+  // คำตอบสำหรับการประเมินนี้
+  answers               Answer[]
+}
+
+enum EvaluationStatus {
+  PENDING               // รอดำเนินการ
+  SELF_EVALUATING       // กำลังประเมินตนเอง
+  EVALUATOR_EVALUATING  // กำลังรอผู้ประเมิน
+  REVIEWER_REVIEWING    // กำลังรอผู้ตรวจสอบ
+  MANAGER_REVIEWING     // กำลังรอผู้จัดการ
+  COMPLETED             // เสร็จสิ้น
+  REJECTED              // ถูกปฏิเสธ (ต้องทำใหม่)
+}
+
+// คำตอบสำหรับการประเมิน
+model Answer {
+  id            String         @id @default(uuid())
+  evaluationId  String
+  evaluation    Evaluation     @relation(fields: [evaluationId], references: [id])
+  questionId    String
+  question      Question       @relation(fields: [questionId], references: [id])
+  score         Float          // คะแนน (1-5 หรือตามที่กำหนด)
+  comment       String?        // ความคิดเห็นเพิ่มเติม
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+// การประเมินตนเอง
+model SelfEvaluation {
+  id            String         @id @default(uuid())
+  userId        String
+  user          User           @relation(fields: [userId], references: [id])
+  year          Int
+  period        String
+  status        SelfEvaluationStatus @default(PENDING)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  selfAnswers   SelfAnswer[]
+}
+
+enum SelfEvaluationStatus {
+  PENDING       // รอดำเนินการ
+  IN_PROGRESS   // กำลังดำเนินการ
+  COMPLETED     // เสร็จสิ้น
+  SUBMITTED     // ส่งแล้ว
+}
+
+// คำตอบการประเมินตนเอง
+model SelfAnswer {
+  id                String         @id @default(uuid())
+  selfEvaluationId  String
+  selfEvaluation    SelfEvaluation @relation(fields: [selfEvaluationId], references: [id])
+  questionId        String
+  question          Question       @relation(fields: [questionId], references: [id])
+  score             Float
+  comment           String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+// ตั้งค่าระบบ
+model Setting {
+  id            String         @id @default(uuid())
+  key           String         @unique
+  value         String
+  description   String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
