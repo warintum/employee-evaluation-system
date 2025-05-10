@@ -12,7 +12,9 @@ const adminPaths = [
   '/employees', 
   '/settings', 
   '/categories',
-  '/attendance'
+  '/attendance',
+  '/admin/evaluation-templates', // เพิ่มเส้นทางสำหรับจัดการแบบฟอร์มประเมิน
+  '/admin/evaluation-items'      // เพิ่มเส้นทางสำหรับจัดการหัวข้อประเมิน
 ]
 
 // ฟังก์ชันสำหรับตรวจสอบ token ใน middleware (edge-compatible)

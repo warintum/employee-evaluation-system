@@ -1,21 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
-//generator client {
-//  provider = "prisma-client-js"
-//  output   = "../app/generated/prisma"
-//}
-
-//datasource db {
-//  provider = "postgresql"
-//  url      = env("DATABASE_URL")
-//}
-
-// This is your Prisma schema file
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -25,7 +10,133 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ข้อมูลผู้ใช้งาน
+// คัดลอกโครงสร้างใหม่จาก improved-schema.txt ต่อจากนี้
+
+// ต้นแบบสำหรับการประเมิน (เทียบกับชุดประเมินกระดาษ)
+model EvaluationTemplate {
+  id            String         @id @default(uuid())
+  name          String         // ชื่อแบบฟอร์ม เช่น "แบบประเมินพนักงานรายวันทั่วไป"
+  description   String?        // คำอธิบายเพิ่มเติม
+  position      String         // ตำแหน่งที่เกี่ยวข้อง เช่น "พนักงานรายวันทั่วไป", "เจ้าหน้าที่ทั่วไป"
+  maxScore      Float          @default(100) // คะแนนเต็ม (โดยปกติคือ 100)
+  isActive      Boolean        @default(true)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // หัวข้อการประเมินที่อยู่ในแบบฟอร์มนี้
+  evaluationItems EvaluationItem[]
+  
+  // การประเมินที่ใช้แบบฟอร์มนี้
+  evaluations      Evaluation[]
+}
+
+// หัวข้อการประเมิน (เทียบกับหัวข้อย่อยในแบบประเมิน)
+model EvaluationItem {
+  id                String         @id @default(uuid())
+  templateId        String         // เชื่อมโยงกับแบบฟอร์ม
+  template          EvaluationTemplate @relation(fields: [templateId], references: [id])
+  title             String         // ชื่อหัวข้อ เช่น "ปริมาณงาน"
+  description       String?        // คำอธิบายเพิ่มเติม
+  maxScore          Float          // คะแนนเต็มของหัวข้อนี้ เช่น 15
+  weight            Float          // น้ำหนักคะแนน (เป็นเปอร์เซ็นต์จากคะแนนทั้งหมด)
+  order             Int            // ลำดับการแสดงผล
+  
+  // เกณฑ์การให้คะแนนแต่ละเกรด
+  gradeA_desc       String?        // คำอธิบายเกรด A (ดีเยี่ยม)
+  gradeA_min        Float?         // คะแนนขั้นต่ำของเกรด A
+  gradeA_max        Float?         // คะแนนสูงสุดของเกรด A
+  
+  gradeB_desc       String?        // คำอธิบายเกรด B (ดี)
+  gradeB_min        Float?         // คะแนนขั้นต่ำของเกรด B
+  gradeB_max        Float?         // คะแนนสูงสุดของเกรด B
+  
+  gradeC_desc       String?        // คำอธิบายเกรด C (ปานกลาง)
+  gradeC_min        Float?         // คะแนนขั้นต่ำของเกรด C
+  gradeC_max        Float?         // คะแนนสูงสุดของเกรด C
+  
+  gradeD_desc       String?        // คำอธิบายเกรด D (พอใช้)
+  gradeD_min        Float?         // คะแนนขั้นต่ำของเกรด D
+  gradeD_max        Float?         // คะแนนสูงสุดของเกรด D
+  
+  gradeE_desc       String?        // คำอธิบายเกรด E (ปรับปรุง)
+  gradeE_min        Float?         // คะแนนขั้นต่ำของเกรด E
+  gradeE_max        Float?         // คะแนนสูงสุดของเกรด E
+  
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  // คำตอบสำหรับหัวข้อนี้
+  itemAnswers       ItemAnswer[]
+}
+
+// การประเมิน (เทียบกับการประเมินแต่ละครั้ง)
+model Evaluation {
+  id                  String         @id @default(uuid())
+  templateId          String         // เชื่อมโยงกับแบบฟอร์มที่ใช้
+  template            EvaluationTemplate @relation(fields: [templateId], references: [id])
+  year                Int
+  period              String         // รอบการประเมิน (เช่น Q1, Q2, ประจำปี)
+  
+  // ผู้ถูกประเมิน
+  evalueeId           String
+  evaluee             User           @relation("Evaluee", fields: [evalueeId], references: [id])
+  
+  // ผู้ประเมิน (ลำดับ 1)
+  evaluatorId         String
+  evaluator           User           @relation("Evaluator", fields: [evaluatorId], references: [id])
+  
+  // ผู้ตรวจสอบ (ลำดับ 2)
+  reviewerId          String
+  reviewer            User           @relation("Reviewer", fields: [reviewerId], references: [id])
+  
+  // ผู้จัดการ (ลำดับ 3)
+  managerId           String
+  manager             User           @relation("Manager", fields: [managerId], references: [id])
+  
+  // สถานะการประเมิน
+  status              EvaluationStatus @default(PENDING)
+  allowSelfEvaluation Boolean         @default(false)
+  
+  // ผลการประเมินจากผู้ประเมิน
+  evaluatorComment    String?
+  evaluatorApproved   Boolean         @default(false)
+  evaluatorRejectedReason String?
+  
+  // ผลการตรวจสอบจากผู้ตรวจสอบ
+  reviewerComment     String?
+  reviewerApproved    Boolean         @default(false)
+  reviewerRejectedReason String?
+  
+  // ผลการอนุมัติจากผู้จัดการ
+  managerComment      String?
+  managerApproved     Boolean         @default(false)
+  managerRejectedReason String?
+  
+  // ผลการประเมินสุดท้าย
+  finalScore          Float?
+  finalGrade          String?
+  
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  
+  // คำตอบสำหรับการประเมินนี้
+  itemAnswers         ItemAnswer[]
+}
+
+// คำตอบสำหรับแต่ละหัวข้อในการประเมิน
+model ItemAnswer {
+  id                String         @id @default(uuid())
+  evaluationId      String
+  evaluation        Evaluation     @relation(fields: [evaluationId], references: [id])
+  evaluationItemId  String
+  evaluationItem    EvaluationItem @relation(fields: [evaluationItemId], references: [id])
+  score             Float          // คะแนนที่ได้รับ
+  comment           String?        // ความคิดเห็นเพิ่มเติม
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+}
+
+// คงโมเดลอื่นๆ ที่มีอยู่แล้วในระบบ เช่น User, Attendance
 model User {
   id            String         @id @default(uuid())
   email         String         @unique
@@ -72,72 +183,6 @@ enum Role {
   EVALUATOR       // ผู้ประเมิน (ลำดับ 1)
   REVIEWER        // ผู้ตรวจสอบ (ลำดับ 2)
   MANAGER         // ผู้จัดการ/ผู้อำนวยการ (ลำดับ 3)
-}
-
-// ปรับปรุงโมเดล Category
-model Category {
-  id            String         @id @default(uuid())
-  name          String
-  description   String?
-  position      String         // ตำแหน่งที่เกี่ยวข้อง
-  maxScore      Float?         // คะแนนเต็มของหมวดหมู่
-  weight        Float?         // น้ำหนักคะแนนของหมวดหมู่ (เป็นเปอร์เซ็นต์)
-  order         Int?           // ลำดับการแสดงผล
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  questions     Question[]
-  templateCategories TemplateCategory[] // ระบุความสัมพันธ์ด้านนี้
-}
-
-// ปรับปรุงตาราง Question เพื่อรองรับคะแนนและข้อมูลเพิ่มเติม
-model Question {
-  id            String         @id @default(uuid())
-  text          String         // ข้อคำถาม
-  categoryId    String
-  category      Category       @relation(fields: [categoryId], references: [id])
-  maxScore      Float?         // คะแนนเต็มของคำถาม
-  minScore      Float?         // คะแนนต่ำสุดของคำถาม
-  weight        Float?         // น้ำหนักคะแนนของคำถาม (เป็นเปอร์เซ็นต์ภายในหมวดหมู่)
-  description   String?        // คำอธิบายเพิ่มเติมของคำถาม
-  order         Int?           // ลำดับการแสดงผล
-  gradeA        String?        // เกณฑ์การให้คะแนนระดับ A
-  gradeB        String?        // เกณฑ์การให้คะแนนระดับ B
-  gradeC        String?        // เกณฑ์การให้คะแนนระดับ C
-  gradeD        String?        // เกณฑ์การให้คะแนนระดับ D
-  gradeE        String?        // เกณฑ์การให้คะแนนระดับ E
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  // คำตอบจากการประเมิน
-  answers       Answer[]
-  selfAnswers   SelfAnswer[]
-}
-
-// เพิ่ม model Template สำหรับเก็บแบบฟอร์มตัวอย่างหรือเทมเพลต
-model Template {
-  id            String         @id @default(uuid())
-  name          String         // ชื่อเทมเพลต
-  description   String?        // คำอธิบาย
-  position      String         // ตำแหน่งที่เกี่ยวข้อง
-  isActive      Boolean        @default(true)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  
-  // ความสัมพันธ์กับหมวดหมู่
-  templateCategories TemplateCategory[]
-}
-
-// ปรับปรุงโมเดล TemplateCategory
-model TemplateCategory {
-  id            String         @id @default(uuid())
-  templateId    String
-  template      Template       @relation(fields: [templateId], references: [id])
-  categoryId    String
-  category      Category       @relation(fields: [categoryId], references: [id])
-  order         Int            // ลำดับของหมวดหมู่ในเทมเพลต
-  
-  @@unique([templateId, categoryId])
 }
 
 // ตั้งค่าลำดับผู้ประเมิน
@@ -204,58 +249,6 @@ model GradeRule {
   updatedAt     DateTime       @updatedAt
 }
 
-// การประเมิน
-model Evaluation {
-  id            String         @id @default(uuid())
-  year          Int
-  period        String         // รอบการประเมิน (เช่น Q1, Q2, ประจำปี)
-  
-  // ผู้ถูกประเมิน
-  evalueeId     String
-  evaluee       User           @relation("Evaluee", fields: [evalueeId], references: [id])
-  
-  // ผู้ประเมิน (ลำดับ 1)
-  evaluatorId   String
-  evaluator     User           @relation("Evaluator", fields: [evaluatorId], references: [id])
-  
-  // ผู้ตรวจสอบ (ลำดับ 2)
-  reviewerId    String
-  reviewer      User           @relation("Reviewer", fields: [reviewerId], references: [id])
-  
-  // ผู้จัดการ (ลำดับ 3)
-  managerId     String
-  manager       User           @relation("Manager", fields: [managerId], references: [id])
-  
-  // สถานะการประเมิน
-  status                EvaluationStatus @default(PENDING)
-  allowSelfEvaluation   Boolean         @default(false)
-  
-  // ผลการประเมินจากผู้ประเมิน
-  evaluatorComment      String?
-  evaluatorApproved     Boolean         @default(false)
-  evaluatorRejectedReason String?
-  
-  // ผลการตรวจสอบจากผู้ตรวจสอบ
-  reviewerComment       String?
-  reviewerApproved      Boolean         @default(false)
-  reviewerRejectedReason String?
-  
-  // ผลการอนุมัติจากผู้จัดการ
-  managerComment        String?
-  managerApproved       Boolean         @default(false)
-  managerRejectedReason String?
-  
-  // ผลการประเมินสุดท้าย
-  finalScore            Float?
-  finalGrade            String?
-  
-  createdAt             DateTime       @default(now())
-  updatedAt             DateTime       @updatedAt
-  
-  // คำตอบสำหรับการประเมินนี้
-  answers               Answer[]
-}
-
 enum EvaluationStatus {
   PENDING               // รอดำเนินการ
   SELF_EVALUATING       // กำลังประเมินตนเอง
@@ -264,19 +257,6 @@ enum EvaluationStatus {
   MANAGER_REVIEWING     // กำลังรอผู้จัดการ
   COMPLETED             // เสร็จสิ้น
   REJECTED              // ถูกปฏิเสธ (ต้องทำใหม่)
-}
-
-// คำตอบสำหรับการประเมิน
-model Answer {
-  id            String         @id @default(uuid())
-  evaluationId  String
-  evaluation    Evaluation     @relation(fields: [evaluationId], references: [id])
-  questionId    String
-  question      Question       @relation(fields: [questionId], references: [id])
-  score         Float          // คะแนน (1-5 หรือตามที่กำหนด)
-  comment       String?        // ความคิดเห็นเพิ่มเติม
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
 }
 
 // การประเมินตนเอง
@@ -311,6 +291,30 @@ model SelfAnswer {
   comment           String?
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+}
+
+// คงโมเดลที่อาจยังใช้ในระบบอยู่
+model Question {
+  id            String         @id @default(uuid())
+  text          String
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  // คำตอบจากการประเมิน
+  selfAnswers   SelfAnswer[]
+}
+
+model Category {
+  id            String         @id @default(uuid())
+  name          String
+  description   String?
+  position      String         // ตำแหน่งที่เกี่ยวข้อง
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  
+  questions     Question[]
 }
 
 // ตั้งค่าระบบ

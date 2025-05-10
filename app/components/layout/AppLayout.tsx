@@ -90,7 +90,8 @@ export default function AppLayout({ children }: AppLayoutProps) {
         roles: ['ADMIN', 'ADMIN_HR'] 
       },
       {
-        href: '/categories',
+       // href: '/categories',
+        href: '/admin/evaluation-templates',
         label: 'หมวดหมู่คำถาม',
         icon: (
           <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -224,7 +225,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path>
               </svg>
-              <span className="absolute top-3 right-52 w-2 h-2 bg-red-500 rounded-full"></span>
+              <span className="absolute top-3 right-22 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
             
             <div className="relative">
@@ -235,11 +236,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
               </button>
             </div>
             
-            {user && user.role !== 'USER' && (
+            {/*user && user.role !== 'USER' && (
               <Link href="/evaluations/new" className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-indigo-600 rounded-lg hover:from-blue-700 hover:to-indigo-700 focus:outline-none shadow-md transition duration-300">
                 + สร้างการประเมินใหม่
               </Link>
-            )}
+            )*/}
           </div>
         </header>
         
